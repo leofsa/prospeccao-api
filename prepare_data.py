@@ -34,10 +34,9 @@ if __name__ == "__main__":
         print(f"[prepare_data] CSV já existe ({size_mb:.1f} MB). Nada a fazer.")
         sys.exit(0)
 
-    url = os.getenv("DATA_CSV_URL", "").strip()
+    DEFAULT_CSV_URL = "https://github.com/leofsa/prospeccao-api/releases/download/v1.0/PDA_Dados_Cursos_Graduacao_Brasil.csv"
+    url = os.getenv("DATA_CSV_URL", DEFAULT_CSV_URL).strip()
     if not url:
-        print("[prepare_data] AVISO: DATA_CSV_URL não configurada.")
-        print("  Configure a variável no Render e faça um novo deploy.")
-        sys.exit(0)
+        url = DEFAULT_CSV_URL
 
     download_csv(url)

@@ -1,10 +1,13 @@
+import os
+import urllib.request
+from contextlib import asynccontextmanager
 from typing import List, Dict, Any
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from scraper import buscar_cursos_mec, buscar_cursos_mec_multicidades
+from scraper import buscar_cursos_mec, buscar_cursos_mec_multicidades, CSV_PATH
 from ia import (
     resolver_equivalencias_instituicoes,
     normalizar_texto,
@@ -15,7 +18,26 @@ from ia import (
     chat_com_ia,
 )
 
-app = FastAPI(title="API Prospecção MEC")
+DEFAULT_CSV_URL = "https://github.com/leofsa/prospeccao-api/releases/download/v1.0/PDA_Dados_Cursos_Graduacao_Brasil.csv"
+
+
+def garantir_csv():
+    if os.path.exists(CSV_PATH):
+        return
+    url = os.getenv("DATA_CSV_URL", DEFAULT_CSV_URL).strip() or DEFAULT_CSV_URL
+    print(f"[startup] CSV não encontrado. Baixando de: {url}")
+    os.makedirs(os.path.dirname(CSV_PATH), exist_ok=True)
+    urllib.request.urlretrieve(url, CSV_PATH)
+    print(f"[startup] CSV baixado: {os.path.getsize(CSV_PATH) / (1024*1024):.1f} MB")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    garantir_csv()
+    yield
+
+
+app = FastAPI(title="API Prospecção MEC", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
