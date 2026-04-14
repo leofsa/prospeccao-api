@@ -1,0 +1,21 @@
+services:
+  # ── API FastAPI ──────────────────────────────────────────────────────────
+  - type: web
+    name: prospeccao-api
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt && python prepare_data.py
+    startCommand: uvicorn servidor:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false        # Você preenche no dashboard do Render
+      - key: DATA_CSV_URL
+        sync: false        # URL do CSV no GitHub Release (veja instruções)
+
+  # ── Dashboard estático ───────────────────────────────────────────────────
+  - type: web
+    name: prospeccao-dashboard
+    env: static
+    staticPublishPath: ./public
+    buildCommand: echo "Dashboard pronto"

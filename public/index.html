@@ -1,0 +1,1413 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Contatos x Projetos + Prospecção MEC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-soft: #121933;
+      --card: rgba(18, 25, 51, 0.84);
+      --card-2: rgba(13, 18, 37, 0.76);
+      --text: #eef2ff;
+      --muted: #9aa5ce;
+      --line: rgba(255,255,255,0.10);
+      --accent: #6ea8fe;
+      --accent-2: #7c4dff;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #38bdf8;
+      --shadow: 0 20px 50px rgba(0,0,0,0.28);
+      --radius: 22px;
+      --chip: rgba(255,255,255,0.06);
+      --table-stripe: rgba(255,255,255,0.025);
+      --hero: radial-gradient(circle at top left, rgba(110,168,254,0.22), transparent 30%), radial-gradient(circle at top right, rgba(124,77,255,0.20), transparent 28%), linear-gradient(135deg, #0b1020 0%, #111932 100%);
+    }
+    html[data-theme="light"] {
+      --bg: #f4f7fb;
+      --bg-soft: #ffffff;
+      --card: rgba(255, 255, 255, 0.88);
+      --card-2: rgba(248, 250, 255, 0.95);
+      --text: #111827;
+      --muted: #64748b;
+      --line: rgba(15, 23, 42, 0.10);
+      --accent: #2563eb;
+      --accent-2: #7c3aed;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --info: #0284c7;
+      --shadow: 0 20px 50px rgba(15, 23, 42, 0.10);
+      --chip: rgba(15, 23, 42, 0.05);
+      --table-stripe: rgba(15,23,42,0.025);
+      --hero: radial-gradient(circle at top left, rgba(37,99,235,0.12), transparent 28%), radial-gradient(circle at top right, rgba(124,58,237,0.12), transparent 24%), linear-gradient(135deg, #f4f7fb 0%, #eef3ff 100%);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--hero); color: var(--text); min-height: 100vh; }
+    .container { width: min(1440px, calc(100% - 32px)); margin: 24px auto 40px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-badge { width: 54px; height: 54px; border-radius: 18px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: grid; place-items: center; color: white; font-weight: 800; box-shadow: var(--shadow); }
+    .brand h1 { margin: 0; font-size: clamp(1.3rem, 2vw, 2rem); line-height: 1.05; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+    .theme-toggle, .btn, .date-input, .text-input {
+      border: 1px solid var(--line); background: var(--card); color: var(--text); padding: 12px 16px; border-radius: 14px; font-weight: 600; transition: .2s ease; backdrop-filter: blur(8px); font-family: inherit;
+    }
+    .theme-toggle, .btn { cursor: pointer; }
+    .theme-toggle:hover, .btn:hover { transform: translateY(-1px); }
+    .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; color: #fff; }
+    .btn.success { background: linear-gradient(135deg, var(--success), #34d399); border: none; color: white; }
+    .btn.warn { background: linear-gradient(135deg, var(--warning), #fbbf24); border: none; color: white; }
+    .btn.ghost { background: transparent; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    .hero, .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); backdrop-filter: blur(12px); }
+    .hero { padding: 26px; margin-bottom: 22px; }
+    .hero-grid { display: grid; grid-template-columns: 1.3fr .7fr; gap: 20px; align-items: center; }
+    .hero h2 { margin: 0 0 10px; font-size: clamp(1.4rem, 2vw, 2.3rem); }
+    .hero p { margin: 0; color: var(--muted); line-height: 1.6; }
+    .chips { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .chip { background: var(--chip); border: 1px solid var(--line); padding: 8px 12px; border-radius: 999px; font-size: 0.9rem; color: var(--muted); }
+    .panel { padding: 22px; margin-bottom: 22px; }
+    .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .panel-title h3 { margin: 0; font-size: 1.08rem; }
+    .muted { color: var(--muted); }
+    .small { font-size: 0.92rem; }
+    .upload-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .upload-card, .filter-card { background: var(--card-2); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+    .upload-card h4, .filter-card h4 { margin: 0 0 8px; font-size: 1rem; }
+    .upload-card p, .filter-card p { margin: 0 0 14px; color: var(--muted); font-size: 0.92rem; min-height: 40px; }
+    .file-input { width: 100%; padding: 12px; border-radius: 12px; border: 1px dashed var(--line); background: transparent; color: var(--text); }
+    .filter-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: end; }
+    .prospeccao-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: stretch; }
+    .filter-field label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+    .date-input, .text-input { width: 100%; appearance: none; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+    .kpi { background: var(--card-2); border: 1px solid var(--line); border-radius: 18px; padding: 18px; min-height: 126px; display: flex; flex-direction: column; justify-content: space-between; }
+    .kpi .label { color: var(--muted); font-size: 0.9rem; }
+    .kpi .value { font-size: clamp(1.4rem, 2vw, 2rem); font-weight: 800; letter-spacing: -0.03em; margin-top: 8px; }
+    .kpi .delta { font-size: 0.9rem; color: var(--muted); }
+    .mini-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .chart-card { background: var(--card-2); border: 1px solid var(--line); border-radius: 18px; padding: 18px; min-height: 390px; display: flex; flex-direction: column; }
+    .chart-card h4 { margin: 0 0 14px; font-size: 1rem; }
+    .canvas-wrap { position: relative; flex: 1; min-height: 300px; height: 300px; }
+    .table-wrap { overflow: auto; border-radius: 18px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; background: transparent; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; font-size: 0.94rem; white-space: nowrap; }
+    th { position: sticky; top: 0; background: var(--bg-soft); z-index: 1; }
+    tbody tr:nth-child(even) { background: var(--table-stripe); }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; font-size: 0.82rem; font-weight: 700; border: 1px solid var(--line); }
+    .pill.success { color: var(--success); background: color-mix(in srgb, var(--success) 12%, transparent); }
+    .pill.danger { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+    .pill.warning { color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); }
+    .pill.info { color: var(--info); background: color-mix(in srgb, var(--info) 12%, transparent); }
+    .empty { text-align: center; color: var(--muted); padding: 30px 16px; border: 1px dashed var(--line); border-radius: 18px; background: var(--card-2); }
+    .footer-note { color: var(--muted); margin-top: 14px; font-size: 0.9rem; line-height: 1.5; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width: 1200px) {
+      .hero-grid, .charts-grid, .upload-grid, .kpi-grid, .filter-grid, .prospeccao-grid, .mini-grid, .two-col { grid-template-columns: 1fr; }
+      .canvas-wrap { height: 280px; }
+    }
+    .table-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: flex-end; background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+    .table-filters .tf-field { flex: 1; min-width: 140px; }
+    .table-filters .tf-field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 0.87rem; font-weight: 600; }
+    .table-filters .tf-field input, .table-filters .tf-field select { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg-soft); color: var(--text); font-size: 0.9rem; font-family: inherit; }
+    .chat-wrap { display: flex; flex-direction: column; gap: 14px; }
+    .chat-api-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    .chat-api-bar .tf-field { flex: 1; min-width: 200px; }
+    .chat-api-bar .tf-field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 0.87rem; font-weight: 600; }
+    .chat-api-bar .tf-field input, .chat-api-bar .tf-field select { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-size: 0.9rem; font-family: inherit; }
+    .chat-messages { background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-height: 240px; max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .chat-msg { padding: 10px 14px; border-radius: 12px; font-size: 0.93rem; line-height: 1.55; max-width: 86%; white-space: pre-wrap; word-break: break-word; }
+    .chat-msg.user { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .chat-msg.bot { background: var(--card); border: 1px solid var(--line); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .chat-msg.bot.loading { color: var(--muted); font-style: italic; }
+    .chat-input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .chat-input-row textarea { flex: 1; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); color: var(--text); font-size: 0.93rem; font-family: inherit; resize: none; min-height: 44px; max-height: 120px; outline: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge">BI</div>
+        <div>
+          <h1>Dashboard de Contatos x Projetos</h1>
+          <p>Comparativo entre planilhas, projeção de semestres e prospecção MEC.</p>
+        </div>
+      </div>
+      <button class="theme-toggle" id="themeToggle">Alternar tema</button>
+    </div>
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <h2>Painel para comparar contatos com a planilha geral</h2>
+          <p>
+            O sistema compara as planilhas pela chave <strong>Instituição + Curso + Semestre</strong>,
+            mostra quantos registros da planilha geral já possuem contato, quantos ainda estão sem contato,
+            permite baixar o Excel dos faltantes e cria gráficos automáticos com recorte por período de cadastro.
+            No Excel de faltantes, cada registro encontrado recebe projeção automática de <strong>+6 semestres futuros</strong>.
+          </p>
+          <div class="chips">
+            <div class="chip">Formato de semestre padronizado: AAAA-1 / AAAA-2</div>
+            <div class="chip">Comparação tolera ponto e hífen</div>
+            <div class="chip">Download do resultado projetado</div>
+            <div class="chip">Perda por semestre vencido</div>
+            <div class="chip">Prospecção MEC x Base Geral</div>
+          </div>
+        </div>
+        <div class="panel" style="margin:0; background:var(--card-2)">
+          <div class="panel-title">
+            <h3>Regras aplicadas</h3>
+          </div>
+          <div class="small muted">
+            <div>• Comparação principal: <strong>Contatos x Geral</strong></div>
+            <div>• Status dos faltantes: usa apenas a <strong>Planilha de Contatos</strong> pela chave Instituição + Curso</div>
+            <div>• Resultado: indicadores e tabela baseados na <strong>planilha projetada</strong></div>
+            <div>• Semestres são normalizados para <strong>AAAA-1 / AAAA-2</strong></div>
+            <div>• Projeção automática: <strong>+6 semestres</strong> a partir do semestre faltante</div>
+            <div>• Prospecção nova: compara <strong>MEC x Planilha Geral</strong> por <strong>Instituição + Curso</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h3>1) Anexar planilhas</h3>
+        <span class="muted small">Aceita .xlsx, .xls e .csv</span>
+      </div>
+      <div class="upload-grid">
+        <div class="upload-card">
+          <h4>Planilha de Contatos</h4>
+          <p>Base com os contatos já existentes.</p>
+          <input id="contatosFile" class="file-input" type="file" accept=".xlsx,.xls,.csv" />
+          <div id="contatosInfo" class="footer-note">Nenhum arquivo selecionado.</div>
+        </div>
+        <div class="upload-card">
+          <h4>Planilha Geral</h4>
+          <p>Base principal para encontrar o que ainda não tem contato e também para comparar com a base MEC.</p>
+          <input id="geralFile" class="file-input" type="file" accept=".xlsx,.xls,.csv" />
+          <div id="geralInfo" class="footer-note">Nenhum arquivo selecionado.</div>
+        </div>
+        <div class="upload-card">
+          <h4>Planilha de Oportunidades</h4>
+          <p>Usada para enriquecer os indicadores de status e perdas pela coluna Fase/Status.</p>
+          <input id="oportunidadesFile" class="file-input" type="file" accept=".xlsx,.xls,.csv" />
+          <div id="oportunidadesInfo" class="footer-note">Nenhum arquivo selecionado.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="processBtn">Processar dashboard</button>
+        <button class="btn success" id="downloadBtn" disabled>Baixar faltantes em Excel</button>
+        <button class="btn ghost" id="clearBtn">Limpar</button>
+      </div>
+      <div class="footer-note">
+        O Excel de faltantes contém o registro faltante original mais a projeção automática dos próximos semestres.
+        Ex.: 2026-1 gera 2026-2, 2027-1, 2027-2, 2028-1, 2028-2 e 2029-1. Se algum semestre projetado já existir na <strong>Planilha de Contatos</strong>, ele é removido do resultado. O gráfico de status usa somente a coluna <strong>Status</strong> da planilha de contatos: <strong>EmNegociacao/Novo → Negociação</strong>, <strong>Convertido → Ganhamos</strong> e <strong>Perdido → Perdemos</strong>. A cobertura é calculada como <strong>contatos válidos ÷ total sem contato</strong>.
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h3>2) Filtro por período</h3>
+        <span id="dateInfo" class="muted small">O filtro será aplicado após processar a planilha geral.</span>
+      </div>
+      <div class="filter-card">
+        <div class="filter-grid">
+          <div class="filter-field">
+            <label for="dateStart">Data inicial</label>
+            <input id="dateStart" class="date-input" type="date">
+          </div>
+          <div class="filter-field">
+            <label for="dateEnd">Data final</label>
+            <input id="dateEnd" class="date-input" type="date">
+          </div>
+          <div>
+            <button class="btn" id="applyDateBtn">Aplicar filtro</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h3>3) Indicadores principais</h3>
+        <span id="summaryText" class="muted small">Aguardando processamento.</span>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="label">Total na planilha geral</div><div id="kpiGeral" class="value">0</div><div class="delta">Registros únicos pela chave</div></div>
+        <div class="kpi"><div class="label">Total com contato</div><div id="kpiComContato" class="value">0</div><div class="delta">Também existem em Contatos</div></div>
+        <div class="kpi"><div class="label">Total sem contato</div><div id="kpiSemContato" class="value">0</div><div class="delta">Baseado no resultado projetado</div></div>
+        <div class="kpi"><div class="label">Perdas por semestre vencido</div><div id="kpiPerdasSemContato" class="value">0</div><div class="delta">Semestres passados ou atuais sem contato</div></div>
+        <div class="kpi"><div class="label">Cobertura</div><div id="kpiCobertura" class="value">0%</div><div class="delta">Contatos ÷ total sem contato</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h3>4) Dashboard</h3>
+        <span class="muted small">Os gráficos usam a planilha de resultado projetada.</span>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card"><h4>Cobertura de contatos</h4><div class="canvas-wrap"><canvas id="coverageChart"></canvas></div></div>
+        <div class="chart-card"><h4>Com contato x Sem contato</h4><div class="canvas-wrap"><canvas id="barChart"></canvas></div></div>
+        <div class="chart-card"><h4>Top 10 instituições sem contato</h4><div class="canvas-wrap"><canvas id="missingInstitutionChart"></canvas></div></div>
+        <div class="chart-card"><h4>Status dos faltantes</h4><div class="canvas-wrap"><canvas id="statusChart"></canvas></div></div>
+        <div class="chart-card"><h4>Perda por falta de contato</h4><div class="canvas-wrap"><canvas id="lossChart"></canvas></div></div>
+        <div class="chart-card"><h4>Volume por mês de cadastro</h4><div class="canvas-wrap"><canvas id="monthlyChart"></canvas></div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h3>5) Resultado dos faltantes + projeção</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <span id="missingCountBadge" class="pill warning">0 registro(s)</span>
+          <span id="lossCountBadge" class="pill danger">0 perdas</span>
+        </div>
+      </div>
+      <div class="table-filters">
+        <div class="tf-field">
+          <label>Instituição</label>
+          <input type="text" id="filterInstituicao" placeholder="Filtrar..." oninput="applyTableFilters()">
+        </div>
+        <div class="tf-field">
+          <label>Curso</label>
+          <input type="text" id="filterCurso" placeholder="Filtrar..." oninput="applyTableFilters()">
+        </div>
+        <div class="tf-field">
+          <label>Semestre</label>
+          <input type="text" id="filterSemestre" placeholder="Ex: 2027-1" oninput="applyTableFilters()">
+        </div>
+        <div class="tf-field">
+          <label>Tipo Registro</label>
+          <select id="filterTipo" onchange="applyTableFilters()">
+            <option value="">Todos</option>
+            <option value="Original">Original</option>
+            <option value="Projeção">Projeção</option>
+          </select>
+        </div>
+        <div class="tf-field">
+          <label>Status Consolidado</label>
+          <select id="filterStatus" onchange="applyTableFilters()">
+            <option value="">Todos</option>
+            <option value="Negociação">Negociação</option>
+            <option value="Ganhamos">Ganhamos</option>
+            <option value="Perdemos">Perdemos</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+      </div>
+      <div id="tableContainer" class="empty">Faça o upload das planilhas e clique em <strong>Processar dashboard</strong>.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h3>6) Prospecção de novos clientes (MEC x Planilha Geral com IA)</h3>
+        <span class="muted small">Gera apenas uma planilha de novas prospecções com equivalência inteligente de instituições.</span>
+      </div>
+      <div class="prospeccao-grid">
+        <div class="filter-card">
+          <h4>Configuração da API local</h4>
+          <p>Se abrir o HTML direto pelo arquivo local, o navegador pode bloquear a chamada para a API. O ideal é abrir o HTML por um servidor local ou habilitar CORS no backend. Este módulo envia a planilha geral para a API e usa IA para resolver equivalência de instituições abreviadas e nomes completos.</p>
+          <div class="two-col">
+            <div class="filter-field">
+              <label for="apiBaseUrl">URL base da API</label>
+              <input id="apiBaseUrl" class="text-input" type="text" value="http://127.0.0.1:8000" />
+            </div>
+            <div class="filter-field">
+              <label for="cidadeMec">Cidade</label>
+              <input id="cidadeMec" class="text-input" type="text" value="Feira de Santana" />
+            </div>
+          </div>
+          <div class="two-col" style="margin-top:14px;">
+            <div class="filter-field">
+              <label for="ufMec">UF</label>
+              <input id="ufMec" class="text-input" type="text" value="BA" />
+            </div>
+            <div class="filter-field">
+              <label for="regiaoCidades">Cidades da região</label>
+              <input id="regiaoCidades" class="text-input" type="text" value="Feira de Santana,Santo Estevão,Conceição da Feira,São Gonçalo dos Campos,Santa Bárbara,Amélia Rodrigues,Irará" />
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn warn" id="fetchMecBtn">Buscar base MEC com IA (cidade)</button>
+            <button class="btn" id="fetchMecRegiaoBtn">Buscar base MEC com IA (região)</button>
+            <button class="btn success" id="downloadProspeccaoBtn" disabled>Baixar novas prospecções</button>
+          </div>
+          <div id="mecInfo" class="footer-note">Aguardando consulta à base MEC com IA.</div>
+        </div>
+        <div class="filter-card">
+          <h4>Indicadores de prospecção</h4>
+          <div class="mini-grid">
+            <div class="kpi" style="min-height:110px"><div class="label">Base MEC</div><div id="kpiMecBase" class="value">0</div><div class="delta">Cursos retornados pela API</div></div>
+            <div class="kpi" style="min-height:110px"><div class="label">Já na Geral</div><div id="kpiMecCobertos" class="value">0</div><div class="delta">Instituição + Curso já existentes</div></div>
+            <div class="kpi" style="min-height:110px"><div class="label">Novas prospecções</div><div id="kpiMecNovos" class="value">0</div><div class="delta">Não encontrados na Geral</div></div>
+            <div class="kpi" style="min-height:110px"><div class="label">Cobertura da base</div><div id="kpiMecCobertura" class="value">0%</div><div class="delta">Geral x MEC</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="two-col" style="margin-top:16px;">
+        <div class="chart-card"><h4>Top instituições com novas oportunidades</h4><div class="canvas-wrap"><canvas id="mecInstitutionChart"></canvas></div></div>
+        <div class="chart-card"><h4>Distribuição de novas prospecções por grau</h4><div class="canvas-wrap"><canvas id="mecGrauChart"></canvas></div></div>
+      </div>
+      <div class="table-filters" style="margin-top:16px;" id="mecTableFilters">
+        <div class="tf-field">
+          <label>Instituição</label>
+          <input type="text" id="filterMecInst" placeholder="Filtrar..." oninput="applyMecFilters()">
+        </div>
+        <div class="tf-field">
+          <label>Curso</label>
+          <input type="text" id="filterMecCurso" placeholder="Filtrar..." oninput="applyMecFilters()">
+        </div>
+        <div class="tf-field">
+          <label>Município</label>
+          <input type="text" id="filterMecMunicipio" placeholder="Filtrar..." oninput="applyMecFilters()">
+        </div>
+        <div class="tf-field">
+          <label>Grau</label>
+          <select id="filterMecGrau" onchange="applyMecFilters()">
+            <option value="">Todos</option>
+          </select>
+        </div>
+        <div class="tf-field">
+          <label>Modalidade</label>
+          <select id="filterMecModalidade" onchange="applyMecFilters()">
+            <option value="">Todas</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:16px;" id="mecTableContainer" class="empty">Clique em <strong>Buscar base MEC</strong> para listar novas prospecções.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h3>7) Assistente</h3>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span class="muted small">Pergunte sobre as planilhas, endereços, telefones ou qualquer informação sobre as instituições</span>
+          <button class="btn ghost" style="padding:8px 14px;" onclick="clearChat()">Limpar conversa</button>
+        </div>
+      </div>
+      <div class="chat-wrap">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg bot">Olá! Como posso ajudar? Você pode me perguntar sobre os dados das planilhas carregadas, ou sobre qualquer instituição de ensino — endereço, telefone, cursos oferecidos, e muito mais.</div>
+        </div>
+        <div class="chat-input-row">
+          <textarea id="chatInput" placeholder="Digite sua pergunta... (Enter para enviar, Shift+Enter para nova linha)" rows="1" oninput="autoResizeTextarea(this)" onkeydown="handleChatKeydown(event)"></textarea>
+          <button class="btn primary" id="chatSendBtn" onclick="sendChatMessage()">Enviar</button>
+        </div>
+        <div class="footer-note muted small" id="chatStatus"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      contatos: [],
+      geral: [],
+      oportunidades: [],
+      oportunidadesMap: new Map(),
+      contatosStatusMap: new Map(),
+      contatosCount: 0,
+      filteredGeral: [],
+      missingRowsOriginal: [],
+      missingRowsProjected: [],
+      metrics: null,
+      charts: {},
+      mecBaseRows: [],
+      mecNewRows: [],
+      mecCharts: {},
+      chatHistory: []
+    };
+
+    const el = (id) => document.getElementById(id);
+    const ids = {
+      contatosFile: el('contatosFile'),
+      geralFile: el('geralFile'),
+      oportunidadesFile: el('oportunidadesFile'),
+      processBtn: el('processBtn'),
+      downloadBtn: el('downloadBtn'),
+      clearBtn: el('clearBtn'),
+      applyDateBtn: el('applyDateBtn'),
+      dateStart: el('dateStart'),
+      dateEnd: el('dateEnd'),
+      summaryText: el('summaryText'),
+      tableContainer: el('tableContainer'),
+      fetchMecBtn: el('fetchMecBtn'),
+      fetchMecRegiaoBtn: el('fetchMecRegiaoBtn'),
+      downloadProspeccaoBtn: el('downloadProspeccaoBtn'),
+      mecTableContainer: el('mecTableContainer')
+    };
+
+    function normalizeText(value) {
+      return String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLowerCase();
+    }
+
+    // Grupos canônicos de instituições — mesmo mapeamento do ia.py
+    // Garante que "UniFAT", "FAT" e "Faculdade Anísio Teixeira" viram "UNIFAT" na chave
+    const GRUPOS_INST_JS = {
+      'GRUPO_ANHANGUERA': ['anhanguera', 'pitagoras', 'unopar', 'faculdade pitagoras'],
+      'UNIFAT':  ['unifat', 'fat', 'faculdade anisio teixeira', 'anisio teixeira'],
+      'UNIFAN':  ['unifan', 'fan', 'faculdade nobre', 'nobre de feira'],
+      'ESTACIO': ['estacio', 'estacio de sa', 'universidade estacio'],
+      'UEFS':    ['uefs', 'universidade estadual de feira de santana'],
+      'UFRB':    ['ufrb', 'universidade federal do reconcavo da bahia', 'reconcavo da bahia'],
+      'UNEB':    ['uneb', 'universidade do estado da bahia'],
+      'UNICESUMAR': ['unicesumar', 'universidade cesumar', 'cesumar'],
+      'UNIFACS': ['unifacs', 'universidade salvador'],
+      'UNIASSELVI': ['uniasselvi', 'leonardo da vinci'],
+      'UNINASSAU': ['uninassau', 'nassau'],
+      'UNIT':    ['unit', 'universidade tiradentes'],
+      'UNIRB':   ['unirb'],
+      'UNIJORGE':['unijorge', 'jorge amado'],
+      'UNIAENE': ['uniaene'],
+      'UNIFACEMP':['unifacemp'],
+      'UNIMAM':  ['unimam'],
+      'FSC':     ['fsc', 'faculdade de santa cruz da bahia'],
+      'FARJ':    ['farj', 'faculdade regional de riachao'],
+      'UNIAGES': ['uniages'],
+      'UNEF':    ['unef', 'universidade de ensino superior de feira'],
+      'UNEX':    ['unex'],
+    };
+
+    function normInstituicao(txt) {
+      const n = normalizeText(txt);
+      if (!n) return n;
+      for (const [grupo, aliases] of Object.entries(GRUPOS_INST_JS)) {
+        for (const alias of aliases) {
+          if (n === alias) return grupo;                              // exato
+          if (alias.length >= 4 && n.includes(alias)) return grupo;  // n contém alias
+          if (alias.length >= 4 && alias.includes(n)) return grupo;  // alias contém n
+        }
+      }
+      return n; // sem grupo → usa o texto normalizado mesmo
+    }
+
+    function safeValue(value) {
+      return value === undefined || value === null ? '' : String(value).trim();
+    }
+
+    function normalizeSemesterValue(value) {
+      const raw = safeValue(value);
+      if (!raw) return '';
+      const cleaned = raw.replace(/\s+/g, '');
+      const match = cleaned.match(/(20\d{2})[.\-_/\\]?([12])/);
+      if (match) return `${match[1]}-${match[2]}`;
+      return raw.replace(/[.]/g, '-');
+    }
+
+    function createKey(row) {
+      const instituicao = normInstituicao(row['Instituição'] || row['Instituicao']);
+      const curso = normalizeText(row['Curso']);
+      const semestre = normalizeText(normalizeSemesterValue(row['Semestre']));
+      return [instituicao, curso, semestre].join('||');
+    }
+
+    function createMecCompareKey(instituicao, curso) {
+      return [normInstituicao(instituicao), normalizeText(curso)].join('||');
+    }
+
+    function createStatusKey(row) {
+      const instituicao = row['Instituição'] || row['Instituicao'] || row['instituicao'] || '';
+      const curso = row['Curso'] || row['curso'] || '';
+      return createMecCompareKey(instituicao, curso);
+    }
+
+    function mapContatoStatus(value) {
+      const v = normalizeText(value);
+      if (v === 'convertido') return 'Ganhamos';
+      if (v === 'perdido') return 'Perdemos';
+      if (v === 'emnegociacao' || v === 'em negociacao' || v === 'novo') return 'Negociação';
+      return 'Outros';
+    }
+
+    function buildContatosStatusMap(rows) {
+      const map = new Map();
+      rows.forEach(row => {
+        const key = createStatusKey(row);
+        if (!key || key === '||') return;
+        const mapped = mapContatoStatus(row['Status']);
+        if (mapped === 'Outros') return;
+        map.set(key, mapped);
+      });
+      return map;
+    }
+
+    function mapStatus(value) {
+      const v = normalizeText(value);
+      if (['orcamento', 'negociacao', 'proposta enviada', 'propostaenviada'].includes(v)) return 'Negociação';
+      if (v === 'perdemos') return 'Perdemos';
+      if (v === 'ganhamos') return 'Ganhamos';
+      return 'Outros';
+    }
+
+    function getStatusValue(row) {
+      return row?.['Fase/Status'] ?? row?.['Fase'] ?? row?.['Status'] ?? '';
+    }
+
+    function getEffectiveMappedStatus(row) {
+      const key = createStatusKey(row);
+      if (state.contatosStatusMap && state.contatosStatusMap.has(key)) {
+        return state.contatosStatusMap.get(key);
+      }
+      return 'Outros';
+    }
+
+    function getDateField(row) {
+      return row['Data de Cadastro'] ?? row['Data Cadastro'] ?? row['Data'] ?? row['Dt Cadastro'] ?? '';
+    }
+
+    function excelDateToJSDate(serial) {
+      const utcDays = Math.floor(Number(serial) - 25569);
+      const utcValue = utcDays * 86400;
+      const dateInfo = new Date(utcValue * 1000);
+      const fractionalDay = Number(serial) - Math.floor(Number(serial)) + 0.0000001;
+      let totalSeconds = Math.floor(86400 * fractionalDay);
+      const seconds = totalSeconds % 60;
+      totalSeconds -= seconds;
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor(totalSeconds / 60) % 60;
+      return new Date(dateInfo.getFullYear(), dateInfo.getMonth(), dateInfo.getDate(), hours, minutes, seconds);
+    }
+
+    function parseDateValue(value) {
+      if (value === null || value === undefined || value === '') return null;
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        const d = excelDateToJSDate(value);
+        return Number.isNaN(d.getTime()) ? null : d;
+      }
+      const raw = safeValue(value);
+      if (!raw) return null;
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+        const [dd, mm, yyyy] = raw.split('/').map(Number);
+        const d = new Date(yyyy, mm - 1, dd);
+        return Number.isNaN(d.getTime()) ? null : d;
+      }
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        const d = new Date(raw);
+        return Number.isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+      const parsed = new Date(raw);
+      return Number.isNaN(parsed.getTime()) ? null : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+    }
+
+    function toDateInputValue(date) {
+      if (!date) return '';
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function getMonthLabel(date) {
+      if (!date) return 'Sem data';
+      return `${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+    }
+
+    function extractSemesterInfo(value) {
+      const norm = normalizeSemesterValue(value);
+      const match = norm.match(/(20\d{2})-(1|2)/);
+      if (!match) return null;
+      return { year: Number(match[1]), semester: Number(match[2]), original: norm };
+    }
+
+    function formatSemester(year, semester) {
+      return `${year}-${semester}`;
+    }
+
+    function isFutureSemester(value, referenceDate = new Date()) {
+      const current = { year: referenceDate.getFullYear(), semester: referenceDate.getMonth() < 6 ? 1 : 2 };
+      const parsed = extractSemesterInfo(value);
+      if (!parsed) return true;
+      if (parsed.year > current.year) return true;
+      if (parsed.year < current.year) return false;
+      return parsed.semester > current.semester;
+    }
+
+    function isPastOrCurrentSemester(value, referenceDate = new Date()) {
+      return !isFutureSemester(value, referenceDate);
+    }
+
+    function generateFutureSemesters(semesterValue, count = 6) {
+      const parsed = extractSemesterInfo(semesterValue);
+      if (!parsed) return [];
+      let year = parsed.year;
+      let semester = parsed.semester;
+      const result = [];
+      for (let i = 0; i < count; i++) {
+        if (semester === 1) semester = 2;
+        else { semester = 1; year += 1; }
+        result.push(formatSemester(year, semester));
+      }
+      return result;
+    }
+
+    function dedupeOriginalMissing(rows) {
+      const map = new Map();
+      rows.forEach(row => {
+        const inst = normalizeText(row['Instituição'] || row['Instituicao']);
+        const curso = normalizeText(row['Curso']);
+        const sem = extractSemesterInfo(row['Semestre']);
+        if (!inst || !curso || !sem) return;
+        const groupKey = `${inst}||${curso}`;
+        const current = map.get(groupKey);
+        const currentRank = sem.year * 10 + sem.semester;
+        if (!current || currentRank < current._rank) {
+          map.set(groupKey, { ...row, 'Semestre': formatSemester(sem.year, sem.semester), _rank: currentRank });
+        }
+      });
+      return [...map.values()].map(({ _rank, ...rest }) => rest);
+    }
+
+    function buildProjectedRows(baseRows, contatosMap = new Map(), geralMap = new Map()) {
+      const out = [];
+      const seen = new Set();
+      const uniqueBase = dedupeOriginalMissing(baseRows);
+
+      uniqueBase.forEach(row => {
+        const original = { ...row, 'Semestre': normalizeSemesterValue(row['Semestre']), 'Tipo Registro': 'Original' };
+        const keyOriginal = createKey(original);
+
+        if (!contatosMap.has(keyOriginal) && !seen.has(keyOriginal)) {
+          seen.add(keyOriginal);
+          out.push(original);
+        }
+
+        const futuros = generateFutureSemesters(original['Semestre'], 6);
+        futuros.forEach(sem => {
+          const projected = { ...row, 'Semestre': sem, 'Tipo Registro': 'Projeção' };
+          const key = createKey(projected);
+          if (!contatosMap.has(key) && !seen.has(key) && !geralMap.has(key)) {
+            seen.add(key);
+            out.push(projected);
+          }
+        });
+      });
+
+      return out;
+    }
+
+    function getThemeColor(varName) {
+      return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    }
+
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (!lines.length) return [];
+      const delimiter = lines[0].includes(';') ? ';' : ',';
+      const headers = lines[0].split(delimiter).map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const parts = line.split(delimiter);
+        const row = {};
+        headers.forEach((header, index) => row[header] = parts[index] ?? '');
+        return row;
+      });
+    }
+
+    async function readFile(file) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith('.csv')) {
+        const text = await file.text();
+        return parseCSV(text);
+      }
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+      const firstSheet = workbook.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet], { defval: '', raw: true });
+      return rows.map(r => {
+        const clone = { ...r };
+        if ('Semestre' in clone) clone['Semestre'] = normalizeSemesterValue(clone['Semestre']);
+        return clone;
+      });
+    }
+
+    function updateFileInfo(targetId, file, rows = null) {
+      el(targetId).textContent = file ? `${file.name}${rows !== null ? ` • ${rows} linha(s)` : ''}` : 'Nenhum arquivo selecionado.';
+    }
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString('pt-BR');
+    }
+
+    function formatPercent(value) {
+      return `${Number(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    }
+
+    function aggregateByKey(rows) {
+      const map = new Map();
+      rows.forEach(row => {
+        const key = createKey(row);
+        if (!key || key === '||||') return;
+        if (!map.has(key)) map.set(key, row);
+      });
+      return map;
+    }
+
+    function countBy(rows, field) {
+      const counts = new Map();
+      rows.forEach(row => {
+        const raw = safeValue(row[field]) || 'Não informado';
+        counts.set(raw, (counts.get(raw) || 0) + 1);
+      });
+      return counts;
+    }
+
+    function buildMissingTable(rows) {
+      if (!rows.length) {
+        ids.tableContainer.innerHTML = '<div class="empty">Nenhum registro faltante encontrado para o período e regra aplicada.</div>';
+        return;
+      }
+      const rowsWithStatus = rows.map(row => ({ ...row, 'Status Consolidado': getEffectiveMappedStatus(row) }));
+      const preferredColumns = ['Instituição','Curso','Semestre','Tipo Registro','Data de Cadastro','Fase/Status','Status Consolidado','Fase','Status','Vendedor','Proponente','Celular','E-mail'];
+      const available = [...new Set(rowsWithStatus.flatMap(r => Object.keys(r)))];
+      const columns = preferredColumns.filter(c => available.includes(c)).concat(available.filter(c => !preferredColumns.includes(c))).slice(0, 18);
+
+      let html = '<div class="table-wrap"><table><thead><tr>';
+      html += columns.map(c => `<th>${c}</th>`).join('');
+      html += '</tr></thead><tbody>';
+      html += rowsWithStatus.slice(0, 500).map(row => '<tr>' + columns.map(c => `<td>${safeValue(row[c]) || '-'}</td>`).join('') + '</tr>').join('');
+      html += '</tbody></table></div>';
+      if (rowsWithStatus.length > 500) html += `<div class="footer-note">Exibindo 500 linhas de ${formatNumber(rowsWithStatus.length)}. Baixe o Excel para obter o resultado completo.</div>`;
+      ids.tableContainer.innerHTML = html;
+    }
+
+    function buildMecTable(rows) {
+      if (!rows.length) {
+        ids.mecTableContainer.innerHTML = '<div class="empty">Nenhuma nova prospecção encontrada para a base consultada.</div>';
+        return;
+      }
+      const columns = ['instituicao', 'curso', 'municipio', 'uf', 'grau', 'modalidade', 'situacao_curso', 'fonte'];
+      let html = '<div class="table-wrap"><table><thead><tr>';
+      html += columns.map(c => `<th>${c}</th>`).join('');
+      html += '</tr></thead><tbody>';
+      html += rows.slice(0, 500).map(row => '<tr>' + columns.map(c => `<td>${safeValue(row[c]) || '-'}</td>`).join('') + '</tr>').join('');
+      html += '</tbody></table></div>';
+      if (rows.length > 500) html += `<div class="footer-note">Exibindo 500 linhas de ${formatNumber(rows.length)}. Baixe o Excel para obter o resultado completo.</div>`;
+      ids.mecTableContainer.innerHTML = html;
+    }
+
+    function destroyDashboardCharts() {
+      Object.values(state.charts).forEach(chart => chart?.destroy?.());
+      state.charts = {};
+    }
+    function destroyMecCharts() {
+      Object.values(state.mecCharts).forEach(chart => chart?.destroy?.());
+      state.mecCharts = {};
+    }
+    function destroyCharts() { destroyDashboardCharts(); destroyMecCharts(); }
+
+    function buildCharts(metrics, resultRows, filteredGeralRows) {
+      destroyDashboardCharts();
+      const textColor = getThemeColor('--text');
+      const lineColor = getThemeColor('--line');
+      const accent = getThemeColor('--accent');
+      const accent2 = getThemeColor('--accent-2');
+      const success = getThemeColor('--success');
+      const warning = getThemeColor('--warning');
+      const danger = getThemeColor('--danger');
+      const info = getThemeColor('--info');
+
+      const commonOptions = {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { labels: { color: textColor, font: { family: 'Inter' } } } },
+        scales: {
+          x: { ticks: { color: textColor }, grid: { color: lineColor } },
+          y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: lineColor } }
+        }
+      };
+
+      state.charts.coverage = new Chart(el('coverageChart').getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: ['Com contato', 'Sem contato'], datasets: [{ data: [metrics.comContato, metrics.semContato], backgroundColor: [success, warning], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: textColor } } } }
+      });
+
+      state.charts.bar = new Chart(el('barChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: ['Com contato', 'Sem contato'], datasets: [{ label: 'Quantidade', data: [metrics.comContato, metrics.semContato], backgroundColor: [accent, danger], borderRadius: 10 }] },
+        options: commonOptions
+      });
+
+      const institutionCounts = [...countBy(resultRows, 'Instituição').entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+      state.charts.missingInstitution = new Chart(el('missingInstitutionChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: institutionCounts.map(([label]) => label), datasets: [{ label: 'Sem contato', data: institutionCounts.map(([, value]) => value), backgroundColor: accent2, borderRadius: 10 }] },
+        options: { ...commonOptions, indexAxis: 'y' }
+      });
+
+      const statusCounts = { 'Negociação': 0, 'Perdemos': 0, 'Ganhamos': 0 };
+      if (state.contatosStatusMap && state.contatosStatusMap.size) {
+        for (const mapped of state.contatosStatusMap.values()) {
+          if (statusCounts[mapped] !== undefined) statusCounts[mapped] += 1;
+        }
+      }
+      state.charts.status = new Chart(el('statusChart').getContext('2d'), {
+        type: 'pie',
+        data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: [accent, danger, success], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: textColor } } } }
+      });
+
+      state.charts.loss = new Chart(el('lossChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: ['Perdas por falta de contato', 'Demais faltantes'], datasets: [{ label: 'Quantidade', data: [metrics.perdasSemContato, Math.max(metrics.semContato - metrics.perdasSemContato, 0)], backgroundColor: [danger, info], borderRadius: 10 }] },
+        options: commonOptions
+      });
+
+      const monthlyCounts = new Map();
+      filteredGeralRows.forEach(row => {
+        const label = getMonthLabel(parseDateValue(getDateField(row)));
+        monthlyCounts.set(label, (monthlyCounts.get(label) || 0) + 1);
+      });
+      const sortedMonths = [...monthlyCounts.entries()].sort((a, b) => {
+        if (a[0] === 'Sem data') return 1;
+        if (b[0] === 'Sem data') return -1;
+        const [ma, ya] = a[0].split('/').map(Number);
+        const [mb, yb] = b[0].split('/').map(Number);
+        return new Date(ya, ma - 1, 1) - new Date(yb, mb - 1, 1);
+      });
+      state.charts.monthly = new Chart(el('monthlyChart').getContext('2d'), {
+        type: 'line',
+        data: { labels: sortedMonths.map(([label]) => label), datasets: [{ label: 'Cadastros no período', data: sortedMonths.map(([, value]) => value), borderColor: accent, backgroundColor: accent, tension: 0.25, fill: false }] },
+        options: commonOptions
+      });
+    }
+
+    function buildMecCharts(rows) {
+      destroyMecCharts();
+      const textColor = getThemeColor('--text');
+      const lineColor = getThemeColor('--line');
+      const accent = getThemeColor('--accent');
+      const accent2 = getThemeColor('--accent-2');
+      const success = getThemeColor('--success');
+      const warning = getThemeColor('--warning');
+
+      const commonOptions = {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { labels: { color: textColor, font: { family: 'Inter' } } } },
+        scales: {
+          x: { ticks: { color: textColor }, grid: { color: lineColor } },
+          y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: lineColor } }
+        }
+      };
+
+      const instCounts = [...countBy(rows, 'instituicao').entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+      state.mecCharts.inst = new Chart(el('mecInstitutionChart').getContext('2d'), {
+        type: 'bar',
+        data: { labels: instCounts.map(([label]) => label), datasets: [{ label: 'Novos cursos', data: instCounts.map(([, value]) => value), backgroundColor: accent2, borderRadius: 10 }] },
+        options: { ...commonOptions, indexAxis: 'y' }
+      });
+
+      const grauCounts = [...countBy(rows, 'grau').entries()].sort((a, b) => b[1] - a[1]);
+      state.mecCharts.grau = new Chart(el('mecGrauChart').getContext('2d'), {
+        type: 'doughnut',
+        data: { labels: grauCounts.map(([label]) => label), datasets: [{ data: grauCounts.map(([, value]) => value), backgroundColor: [accent, success, warning, '#f472b6', '#60a5fa', '#a78bfa'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: textColor } } } }
+      });
+    }
+
+    function updateKPIs(metrics) {
+      el('kpiGeral').textContent = formatNumber(metrics.totalGeral);
+      el('kpiComContato').textContent = formatNumber(metrics.comContato);
+      el('kpiSemContato').textContent = formatNumber(metrics.semContato);
+      el('kpiPerdasSemContato').textContent = formatNumber(metrics.perdasSemContato);
+      el('kpiCobertura').textContent = formatPercent(metrics.cobertura);
+      ids.summaryText.textContent = `Comparação concluída com ${formatNumber(metrics.totalGeral)} registros únicos da geral, ${formatNumber(metrics.semContato)} sem contato na planilha projetada e ${formatNumber(metrics.contatosBase || 0)} contatos válidos na base de contatos.`;
+      el('missingCountBadge').textContent = `${formatNumber(metrics.semContato)} registro(s)`;
+      el('lossCountBadge').textContent = `${formatNumber(metrics.perdasSemContato)} perda(s)`;
+    }
+
+    function updateMecKPIs(baseCount, coveredCount, newCount) {
+      el('kpiMecBase').textContent = formatNumber(baseCount);
+      el('kpiMecCobertos').textContent = formatNumber(coveredCount);
+      el('kpiMecNovos').textContent = formatNumber(newCount);
+      el('kpiMecCobertura').textContent = formatPercent(baseCount ? (coveredCount / baseCount) * 100 : 0);
+    }
+
+    function getDateRangeFromRows(rows) {
+      const dates = rows.map(r => parseDateValue(getDateField(r))).filter(Boolean).sort((a, b) => a - b);
+      if (!dates.length) return null;
+      return { min: dates[0], max: dates[dates.length - 1] };
+    }
+
+    function applyDateDefaults() {
+      const range = getDateRangeFromRows(state.geral);
+      if (!range) {
+        ids.dateStart.value = '';
+        ids.dateEnd.value = '';
+        el('dateInfo').textContent = 'Não foi possível identificar datas válidas na coluna Data de Cadastro da planilha geral.';
+        return;
+      }
+      ids.dateStart.value = toDateInputValue(range.min);
+      ids.dateEnd.value = toDateInputValue(range.max);
+      el('dateInfo').textContent = `Período disponível detectado: ${toDateInputValue(range.min).split('-').reverse().join('/')} até ${toDateInputValue(range.max).split('-').reverse().join('/')}.`;
+    }
+
+    function filterGeralByDate(rows) {
+      const start = ids.dateStart.value ? new Date(ids.dateStart.value + 'T00:00:00') : null;
+      const end = ids.dateEnd.value ? new Date(ids.dateEnd.value + 'T23:59:59') : null;
+      if (!start && !end) return rows.slice();
+      return rows.filter(row => {
+        const dt = parseDateValue(getDateField(row));
+        if (!dt) return false;
+        if (start && dt < start) return false;
+        if (end && dt > end) return false;
+        return true;
+      });
+    }
+
+    function recalculateDashboard() {
+      if (!state.contatos.length || !state.geral.length) return;
+      const contatosMap = aggregateByKey(state.contatos);
+      state.filteredGeral = filterGeralByDate(state.geral);
+      const geralMap = aggregateByKey(state.filteredGeral);
+      const futureMissing = [];
+      const allMissing = [];
+      let comContato = 0;
+
+      geralMap.forEach((row, key) => {
+        const normalizedRow = { ...row, 'Semestre': normalizeSemesterValue(row['Semestre']) };
+        if (contatosMap.has(key)) {
+          comContato += 1;
+        } else {
+          allMissing.push(normalizedRow);
+          if (isFutureSemester(normalizedRow['Semestre'])) futureMissing.push(normalizedRow);
+        }
+      });
+
+      const fullGeralMap = aggregateByKey(state.geral);
+      const projected = buildProjectedRows(futureMissing, contatosMap, fullGeralMap);
+      state.missingRowsOriginal = futureMissing;
+      state.missingRowsProjected = projected;
+
+      const perdasSemContato = allMissing.filter(row => isPastOrCurrentSemester(row['Semestre'])).length;
+      const totalGeral = geralMap.size;
+      const semContato = projected.length;
+      const contatosBase = state.contatosCount || 0;
+      const cobertura = semContato ? (contatosBase / semContato) * 100 : 0;
+      const metrics = { totalGeral, comContato, semContato, cobertura, perdasSemContato, contatosBase };
+      state.metrics = metrics;
+
+      updateKPIs(metrics);
+      buildMissingTable(projected);
+      buildCharts(metrics, projected, state.filteredGeral);
+      ids.downloadBtn.disabled = !projected.length;
+    }
+
+    async function processData() {
+      const contatosFile = ids.contatosFile.files[0];
+      const geralFile = ids.geralFile.files[0];
+      const oportunidadesFile = ids.oportunidadesFile.files[0];
+      if (!contatosFile || !geralFile) {
+        alert('Envie pelo menos a planilha de Contatos e a planilha Geral.');
+        return;
+      }
+
+      ids.processBtn.disabled = true;
+      ids.processBtn.textContent = 'Processando...';
+
+      try {
+        state.contatos = await readFile(contatosFile);
+        state.geral = await readFile(geralFile);
+        state.oportunidades = oportunidadesFile ? await readFile(oportunidadesFile) : [];
+        state.oportunidadesMap = aggregateByKey(state.oportunidades);
+        state.contatosStatusMap = buildContatosStatusMap(state.contatos);
+        state.contatosCount = state.contatosStatusMap.size;
+        updateFileInfo('contatosInfo', contatosFile, state.contatos.length);
+        updateFileInfo('geralInfo', geralFile, state.geral.length);
+        updateFileInfo('oportunidadesInfo', oportunidadesFile, state.oportunidades.length);
+        applyDateDefaults();
+        recalculateDashboard();
+      } catch (error) {
+        console.error(error);
+        alert('Ocorreu um erro ao processar as planilhas. Verifique se as colunas esperadas existem e tente novamente.');
+      } finally {
+        ids.processBtn.disabled = false;
+        ids.processBtn.textContent = 'Processar dashboard';
+      }
+    }
+
+    function exportMissingRows() {
+      if (!state.missingRowsProjected.length) return;
+      const rows = state.missingRowsProjected.map(row => ({
+        ...row,
+        'Semestre': normalizeSemesterValue(row['Semestre']),
+        'Status Consolidado': getEffectiveMappedStatus(row),
+        'Perda por falta de contato': getEffectiveMappedStatus(row) === 'Perdemos' ? 'Sim' : 'Não'
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Sem Contato Projetado');
+      XLSX.writeFile(wb, `faltantes_projetados_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    function buildGeralCourseMap(rows) {
+      const map = new Map();
+      rows.forEach(row => {
+        const inst = row['Instituição'] || row['Instituicao'] || '';
+        const curso = row['Curso'] || '';
+        const key = createMecCompareKey(inst, curso);
+        if (!key || key === '||') return;
+        if (!map.has(key)) map.set(key, row);
+      });
+      return map;
+    }
+
+    async function fetchMecBase(url, payload) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const txt = await response.text();
+          throw new Error(`Falha ao consultar API MEC (${response.status}). ${txt}`);
+        }
+
+        return response.json();
+      } catch (err) {
+        throw new Error('Falha de conexão. Se o HTML foi aberto por arquivo local, rode-o por um servidor local e habilite CORS no backend.');
+      }
+    }
+
+    async function processMec(mode = 'cidade') {
+      if (!state.geral.length) {
+        alert('Carregue primeiro a Planilha Geral, pois a prospecção compara MEC x Geral.');
+        return;
+      }
+
+      const baseUrl = safeValue(el('apiBaseUrl').value).replace(/\/$/, '');
+      const cidade = safeValue(el('cidadeMec').value) || 'Feira de Santana';
+      const uf = safeValue(el('ufMec').value) || 'BA';
+      const cidadesRegiao = safeValue(el('regiaoCidades').value)
+        .split(',')
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      let endpoint = `${baseUrl}/prospeccao_mec_inteligente`;
+      let payload = {
+        geral_rows: state.geral,
+        municipio: cidade,
+        uf: uf,
+        somente_ativos: true
+      };
+
+      if (mode === 'regiao') {
+        endpoint = `${baseUrl}/prospeccao_mec_regiao_inteligente`;
+        payload = {
+          geral_rows: state.geral,
+          cidades: cidadesRegiao,
+          uf: uf,
+          somente_ativos: true
+        };
+      }
+
+      ids.fetchMecBtn.disabled = true;
+      ids.fetchMecRegiaoBtn.disabled = true;
+      el('mecInfo').textContent = 'Consultando base MEC com IA...';
+
+      try {
+        const data = await fetchMecBase(endpoint, payload);
+
+        const mecRows = Array.isArray(data?.data) ? data.data : [];
+        const cobertos = Number(data?.ja_na_geral || 0);
+        const baseMec = Number(data?.base_mec || mecRows.length || 0);
+        const equivalencias = data?.equivalencias || {};
+
+        state.mecBaseRows = mecRows;
+        state.mecNewRows = mecRows;
+
+        updateMecKPIs(baseMec, cobertos, mecRows.length);
+        buildMecTable(mecRows);
+        buildMecCharts(mecRows);
+        populateMecFilterDropdowns();
+        ids.downloadProspeccaoBtn.disabled = !mecRows.length;
+
+        const totalEquivalencias = Object.keys(equivalencias).length;
+        el('mecInfo').textContent =
+          `Consulta concluída. Base MEC: ${formatNumber(baseMec)} | Já na Geral: ${formatNumber(cobertos)} | Novas prospecções: ${formatNumber(mecRows.length)} | Equivalências IA: ${formatNumber(totalEquivalencias)}.`;
+
+      } catch (error) {
+        console.error(error);
+        el('mecInfo').textContent = `Erro ao consultar a base MEC com IA: ${error.message}`;
+        alert(`Erro ao consultar a base MEC com IA. ${error.message}`);
+      } finally {
+        ids.fetchMecBtn.disabled = false;
+        ids.fetchMecRegiaoBtn.disabled = false;
+      }
+    }
+
+    function exportMecRows() {
+      if (!state.mecNewRows.length) return;
+      const ws = XLSX.utils.json_to_sheet(state.mecNewRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Novas Prospecções');
+      XLSX.writeFile(wb, `novas_prospeccoes_mec_${new Date().toISOString().slice(0,10)}.xlsx`);
+    }
+
+    function clearAll() {
+      ids.contatosFile.value = '';
+      ids.geralFile.value = '';
+      ids.oportunidadesFile.value = '';
+      ids.dateStart.value = '';
+      ids.dateEnd.value = '';
+      state.contatos = [];
+      state.geral = [];
+      state.oportunidades = [];
+      state.oportunidadesMap = new Map();
+      state.filteredGeral = [];
+      state.missingRowsOriginal = [];
+      state.missingRowsProjected = [];
+      state.metrics = null;
+      state.mecBaseRows = [];
+      state.mecNewRows = [];
+      updateFileInfo('contatosInfo', null);
+      updateFileInfo('geralInfo', null);
+      updateFileInfo('oportunidadesInfo', null);
+      destroyCharts();
+      updateKPIs({ totalGeral: 0, comContato: 0, semContato: 0, cobertura: 0, perdasSemContato: 0, contatosBase: 0 });
+      updateMecKPIs(0, 0, 0);
+      ids.downloadBtn.disabled = true;
+      ids.downloadProspeccaoBtn.disabled = true;
+      ids.tableContainer.innerHTML = 'Faça o upload das planilhas e clique em <strong>Processar dashboard</strong>.';
+      ids.mecTableContainer.innerHTML = 'Clique em <strong>Buscar base MEC</strong> para listar novas prospecções.';
+      el('missingCountBadge').textContent = '0 registros';
+      el('lossCountBadge').textContent = '0 perdas';
+      ids.summaryText.textContent = 'Aguardando processamento.';
+      el('dateInfo').textContent = 'O filtro será aplicado após processar a planilha geral.';
+      el('mecInfo').textContent = 'Aguardando consulta à base MEC com IA.';
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('dashboard-theme', next);
+      if (state.metrics) buildCharts(state.metrics, state.missingRowsProjected, state.filteredGeral);
+      if (state.mecNewRows.length) buildMecCharts(state.mecNewRows);
+    }
+
+    (function init() {
+      const savedTheme = localStorage.getItem('dashboard-theme');
+      if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+      el('themeToggle').addEventListener('click', toggleTheme);
+      ids.processBtn.addEventListener('click', processData);
+      ids.downloadBtn.addEventListener('click', exportMissingRows);
+      ids.clearBtn.addEventListener('click', clearAll);
+      ids.applyDateBtn.addEventListener('click', recalculateDashboard);
+      ids.fetchMecBtn.addEventListener('click', () => processMec('cidade'));
+      ids.fetchMecRegiaoBtn.addEventListener('click', () => processMec('regiao'));
+      ids.downloadProspeccaoBtn.addEventListener('click', exportMecRows);
+      ids.dateStart.addEventListener('change', () => state.geral.length && recalculateDashboard());
+      ids.dateEnd.addEventListener('change', () => state.geral.length && recalculateDashboard());
+      ids.contatosFile.addEventListener('change', (e) => updateFileInfo('contatosInfo', e.target.files[0] || null));
+      ids.geralFile.addEventListener('change', (e) => updateFileInfo('geralInfo', e.target.files[0] || null));
+      ids.oportunidadesFile.addEventListener('change', (e) => updateFileInfo('oportunidadesInfo', e.target.files[0] || null));
+      updateMecKPIs(0, 0, 0);
+    })();
+
+    // ── Filtros da tabela MEC ───────────────────────────────────────────────
+    function populateMecFilterDropdowns() {
+      const grauSel = el('filterMecGrau');
+      const modalSel = el('filterMecModalidade');
+      if (!grauSel || !modalSel) return;
+      const graus = [...new Set(state.mecNewRows.map(r => safeValue(r['grau'])).filter(Boolean))].sort();
+      const mods  = [...new Set(state.mecNewRows.map(r => safeValue(r['modalidade'])).filter(Boolean))].sort();
+      grauSel.innerHTML  = '<option value="">Todos</option>'  + graus.map(g => `<option value="${g}">${g}</option>`).join('');
+      modalSel.innerHTML = '<option value="">Todas</option>' + mods.map(m => `<option value="${m}">${m}</option>`).join('');
+    }
+
+    function applyMecFilters() {
+      if (!state.mecNewRows.length) return;
+      const inst      = (el('filterMecInst')?.value || '').toLowerCase().trim();
+      const curso     = (el('filterMecCurso')?.value || '').toLowerCase().trim();
+      const municipio = (el('filterMecMunicipio')?.value || '').toLowerCase().trim();
+      const grau      = el('filterMecGrau')?.value || '';
+      const modal     = el('filterMecModalidade')?.value || '';
+
+      const filtered = state.mecNewRows.filter(row => {
+        if (inst      && !normalizeText(safeValue(row['instituicao'])).includes(inst))      return false;
+        if (curso     && !normalizeText(safeValue(row['curso'])).includes(curso))           return false;
+        if (municipio && !normalizeText(safeValue(row['municipio'])).includes(municipio))   return false;
+        if (grau      && safeValue(row['grau']) !== grau)                                   return false;
+        if (modal     && safeValue(row['modalidade']) !== modal)                             return false;
+        return true;
+      });
+
+      buildMecTable(filtered);
+    }
+
+    // ── Filtros da tabela de faltantes ──────────────────────────────────────
+    function applyTableFilters() {
+      if (!state.missingRowsProjected.length) return;
+      const inst    = (el('filterInstituicao')?.value || '').toLowerCase().trim();
+      const curso   = (el('filterCurso')?.value || '').toLowerCase().trim();
+      const sem     = (el('filterSemestre')?.value || '').toLowerCase().trim();
+      const tipo    = el('filterTipo')?.value || '';
+      const status  = el('filterStatus')?.value || '';
+
+      const filtered = state.missingRowsProjected.filter(row => {
+        const st = getEffectiveMappedStatus(row);
+        if (inst   && !normalizeText(safeValue(row['Instituição'])).includes(inst))   return false;
+        if (curso  && !normalizeText(safeValue(row['Curso'])).includes(curso))        return false;
+        if (sem    && !safeValue(row['Semestre']).toLowerCase().includes(sem))        return false;
+        if (tipo   && safeValue(row['Tipo Registro']) !== tipo)                       return false;
+        if (status && st !== status)                                                  return false;
+        return true;
+      });
+
+      buildMissingTable(filtered);
+    }
+
+    // ── Chatbot GPT ─────────────────────────────────────────────────────────
+    function buildChatContext() {
+      const parts = [];
+
+      if (state.geral.length) {
+        const insts  = [...new Set(state.geral.map(r => safeValue(r['Instituição'] || r['Instituicao'])).filter(Boolean))];
+        const cursos = [...new Set(state.geral.map(r => safeValue(r['Curso'])).filter(Boolean))];
+        const cols   = state.geral[0] ? Object.keys(state.geral[0]).join(', ') : '';
+        parts.push(`## Planilha Geral\nRegistros: ${state.geral.length}\nColunas: ${cols}\nInstituições (até 30): ${insts.slice(0,30).join('; ')}\nCursos (até 20): ${cursos.slice(0,20).join('; ')}`);
+      }
+
+      if (state.contatos.length) {
+        const cols = state.contatos[0] ? Object.keys(state.contatos[0]).join(', ') : '';
+        parts.push(`## Planilha de Contatos\nRegistros: ${state.contatos.length}\nColunas: ${cols}`);
+      }
+
+      if (state.metrics) {
+        const m = state.metrics;
+        parts.push(`## Métricas do dashboard\nTotal Geral: ${m.totalGeral} | Com contato: ${m.comContato} | Sem contato: ${m.semContato} | Perdas: ${m.perdasSemContato} | Cobertura: ${m.cobertura.toFixed(1)}%`);
+      }
+
+      if (!parts.length) parts.push('Nenhuma planilha carregada ainda.');
+      return parts.join('\n\n');
+    }
+
+    function findRelevantRows(question) {
+      const words = normalizeText(question).split(/\s+/).filter(w => w.length > 3);
+      if (!words.length) return [];
+      const seen = new Set();
+      const scored = [];
+      const sources = [
+        ...state.geral.map(r => ({ ...r, _fonte: 'Geral' })),
+        ...state.contatos.map(r => ({ ...r, _fonte: 'Contatos' })),
+        ...state.missingRowsProjected.map(r => ({ ...r, _fonte: 'Faltante' }))
+      ];
+      for (const row of sources) {
+        const rowStr = normalizeText(Object.values(row).join(' '));
+        const score = words.filter(w => rowStr.includes(w)).length;
+        if (score > 0) {
+          const key = Object.entries(row).filter(([k]) => k !== '_fonte').map(([, v]) => v).join('|');
+          if (!seen.has(key)) { seen.add(key); scored.push({ row, score }); }
+        }
+      }
+      scored.sort((a, b) => b.score - a.score);
+      return scored.slice(0, 20).map(s => s.row);
+    }
+
+    async function sendChatMessage() {
+      const input = el('chatInput');
+      const question = (input.value || '').trim();
+      if (!question) return;
+
+      const baseUrl = safeValue(el('apiBaseUrl')?.value).replace(/\/$/, '') || 'http://127.0.0.1:8000';
+
+      addChatMessage(question, 'user');
+      state.chatHistory.push({ role: 'user', content: question });
+      input.value = '';
+      input.style.height = 'auto';
+
+      const loadingId = addChatMessage('Digitando...', 'bot loading');
+      el('chatSendBtn').disabled = true;
+      el('chatStatus').textContent = '';
+
+      try {
+        const resumo   = buildChatContext();
+        const relevant = findRelevantRows(question);
+
+        const res = await fetch(`${baseUrl}/chat`, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mensagem: question,
+            historico: state.chatHistory.slice(-10),
+            contexto: { resumo, registros_relevantes: relevant }
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const answer = data.resposta || 'Sem resposta.';
+        removeChatMessage(loadingId);
+        addChatMessage(answer, 'bot');
+        state.chatHistory.push({ role: 'assistant', content: answer });
+        if (state.chatHistory.length > 20) state.chatHistory = state.chatHistory.slice(-20);
+
+      } catch (err) {
+        removeChatMessage(loadingId);
+        addChatMessage(`Não foi possível obter resposta: ${err.message}`, 'bot');
+        el('chatStatus').textContent = `Erro: ${err.message}`;
+      } finally {
+        el('chatSendBtn').disabled = false;
+      }
+    }
+
+    let _chatMsgId = 0;
+    function addChatMessage(text, type) {
+      const id = `cmsg-${++_chatMsgId}`;
+      const div = document.createElement('div');
+      div.className = `chat-msg ${type}`;
+      div.id = id;
+      div.textContent = text;
+      const c = el('chatMessages');
+      c.appendChild(div);
+      c.scrollTop = c.scrollHeight;
+      return id;
+    }
+
+    function removeChatMessage(id) { el(id)?.remove(); }
+
+    function clearChat() {
+      el('chatMessages').innerHTML = '<div class="chat-msg bot">Olá! Carregue as planilhas e me faça perguntas sobre os dados.</div>';
+      state.chatHistory = [];
+      el('chatStatus').textContent = '';
+    }
+
+    function handleChatKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+    }
+
+    function autoResizeTextarea(t) {
+      t.style.height = 'auto';
+      t.style.height = Math.min(t.scrollHeight, 120) + 'px';
+    }
+  </script>
+</body>
+</html>
