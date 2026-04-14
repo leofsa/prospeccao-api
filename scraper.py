@@ -27,35 +27,67 @@ def _normalizar(txt: str) -> str:
     return txt
 
 
-def _ler_csv() -> pd.DataFrame:
+COLUNAS_UTEIS = [
+    "NOME_IES", "NOME_CURSO", "MUNICIPIO", "UF", "SITUACAO_CURSO",
+    "GRAU", "MODALIDADE", "ORGANIZACAO_ACADEMICA", "CATEGORIA_ADMINISTRATIVA",
+    "CODIGO_IES", "CODIGO_CURSO", "REGIAO",
+]
+
+_CSV_PARAMS: dict = {}  # cache dos parâmetros corretos (sep + encoding)
+
+
+def _detectar_params() -> dict:
+    """Detecta separador e encoding lendo apenas o cabeçalho do CSV."""
+    if _CSV_PARAMS:
+        return _CSV_PARAMS
+
+    tentativas = [
+        {"sep": ";", "encoding": "latin1"},
+        {"sep": ";", "encoding": "utf-8"},
+        {"sep": ",", "encoding": "utf-8"},
+        {"sep": ",", "encoding": "latin1"},
+        {"sep": ";", "encoding": "cp1252"},
+        {"sep": ",", "encoding": "cp1252"},
+    ]
+    for t in tentativas:
+        try:
+            df = pd.read_csv(CSV_PATH, sep=t["sep"], encoding=t["encoding"], nrows=2)
+            if df.shape[1] > 5:
+                _CSV_PARAMS.update(t)
+                return t
+        except Exception:
+            pass
+    raise RuntimeError("Não foi possível detectar o formato do CSV.")
+
+
+def _ler_csv_filtrado(municipio_norm: str, uf_norm: str) -> pd.DataFrame:
+    """Lê o CSV em chunks e retorna apenas as linhas do município/UF desejado."""
     if not os.path.exists(CSV_PATH):
         raise FileNotFoundError(f"Arquivo CSV não encontrado em: {CSV_PATH}")
 
-    tentativas = [
-        {"sep": ",", "encoding": "utf-8"},
-        {"sep": ";", "encoding": "utf-8"},
-        {"sep": ",", "encoding": "latin1"},
-        {"sep": ";", "encoding": "latin1"},
-        {"sep": ",", "encoding": "cp1252"},
-        {"sep": ";", "encoding": "cp1252"},
-    ]
+    params = _detectar_params()
+    chunks = []
+    chunk_iter = pd.read_csv(
+        CSV_PATH,
+        sep=params["sep"],
+        encoding=params["encoding"],
+        dtype=str,
+        chunksize=50_000,
+        usecols=lambda c: str(c).strip().upper() in [col.upper() for col in COLUNAS_UTEIS],
+    )
+    for chunk in chunk_iter:
+        chunk.columns = [str(c).strip().upper() for c in chunk.columns]
+        if "MUNICIPIO" not in chunk.columns or "UF" not in chunk.columns:
+            continue
+        chunk["_M"] = chunk["MUNICIPIO"].fillna("").str.strip().str.lower()
+        chunk["_U"] = chunk["UF"].fillna("").str.strip().str.lower()
+        filtrado = chunk[(chunk["_M"] == municipio_norm) & (chunk["_U"] == uf_norm)]
+        if not filtrado.empty:
+            chunks.append(filtrado.drop(columns=["_M", "_U"]))
 
-    ultimo_erro = None
-
-    for tentativa in tentativas:
-        try:
-            df = pd.read_csv(
-                CSV_PATH,
-                sep=tentativa["sep"],
-                encoding=tentativa["encoding"],
-                low_memory=False
-            )
-            if df.shape[1] > 5:
-                return df
-        except Exception as e:
-            ultimo_erro = e
-
-    raise RuntimeError(f"Não foi possível ler o CSV. Último erro: {ultimo_erro}")
+    if not chunks:
+        return pd.DataFrame()
+    return pd.concat(chunks, ignore_index=True)
 
 
 def _preparar_dataframe(df: pd.DataFrame) -> pd.DataFrame:
@@ -88,24 +120,13 @@ def buscar_cursos_mec(
     uf: str = "BA",
     somente_ativos: bool = True
 ) -> List[Dict]:
-    df = _ler_csv()
-    df = _preparar_dataframe(df)
-
-    required_cols = ["NOME_IES", "NOME_CURSO", "MUNICIPIO", "UF"]
-    faltando = [c for c in required_cols if c not in df.columns]
-    if faltando:
-        raise RuntimeError(f"Colunas obrigatórias não encontradas no CSV: {faltando}")
-
     municipio_norm = _normalizar(municipio)
     uf_norm = _normalizar(uf)
 
-    df["_MUNICIPIO_NORM"] = df["MUNICIPIO"].apply(_normalizar)
-    df["_UF_NORM"] = df["UF"].apply(_normalizar)
-
-    filtrado = df[
-        (df["_MUNICIPIO_NORM"] == municipio_norm) &
-        (df["_UF_NORM"] == uf_norm)
-    ].copy()
+    filtrado = _ler_csv_filtrado(municipio_norm, uf_norm)
+    if filtrado.empty:
+        return []
+    filtrado = _preparar_dataframe(filtrado)
 
     if somente_ativos and "SITUACAO_CURSO" in filtrado.columns:
         filtrado["_SITUACAO_NORM"] = filtrado["SITUACAO_CURSO"].apply(_normalizar)
