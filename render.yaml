@@ -11,7 +11,7 @@ services:
       - key: OPENAI_API_KEY
         sync: false        # Você preenche no dashboard do Render
       - key: DATA_CSV_URL
-        sync: false        # URL do CSV no GitHub Release (veja instruções)
+        value: https://github.com/leofsa/prospeccao-api/releases/download/v1.0/PDA_Dados_Cursos_Graduacao_Brasil.csv
 
   # ── Dashboard estático ───────────────────────────────────────────────────
   - type: web
